@@ -1,4 +1,4 @@
-# AG-X SDK Edition
+# AG-X Opensource Edition
 
 **Deterministic safety guardrails for AI agents — zero infrastructure, one line of code.**
 
