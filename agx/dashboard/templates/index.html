@@ -1,0 +1,170 @@
+{% extends "base.html" %}
+{% block title %}Runs — AG-X Dashboard{% endblock %}
+
+{% block content %}
+<div x-data="runsPage()" x-init="init()">
+
+  <!-- Header -->
+  <div class="flex items-center justify-between mb-6">
+    <div>
+      <h1 class="text-2xl font-bold text-gray-900">Agent Runs</h1>
+      <p class="text-sm text-gray-500 mt-1">Live trace feed — new runs appear automatically</p>
+    </div>
+    <div class="flex items-center gap-2">
+      <span x-show="connected" class="flex items-center gap-1 text-xs text-green-600">
+        <span class="w-2 h-2 bg-green-500 rounded-full animate-pulse"></span> Live
+      </span>
+      <span x-show="!connected" class="flex items-center gap-1 text-xs text-gray-400">
+        <span class="w-2 h-2 bg-gray-400 rounded-full"></span> Offline
+      </span>
+    </div>
+  </div>
+
+  <!-- Filters -->
+  <form method="get" class="flex flex-wrap gap-3 mb-6">
+    <select name="agent"
+            class="border border-gray-300 rounded-md px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-gray-900">
+      <option value="">All agents</option>
+      {% for a in agents %}
+      <option value="{{ a }}" {% if filter_agent == a %}selected{% endif %}>{{ a }}</option>
+      {% endfor %}
+    </select>
+    <select name="outcome"
+            class="border border-gray-300 rounded-md px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-gray-900">
+      <option value="">All outcomes</option>
+      <option value="SUCCESS"  {% if filter_outcome == "SUCCESS"  %}selected{% endif %}>SUCCESS</option>
+      <option value="FAILURE"  {% if filter_outcome == "FAILURE"  %}selected{% endif %}>FAILURE</option>
+      <option value="BLOCKED"  {% if filter_outcome == "BLOCKED"  %}selected{% endif %}>BLOCKED</option>
+      <option value="WARNED"   {% if filter_outcome == "WARNED"   %}selected{% endif %}>WARNED</option>
+    </select>
+    <button type="submit"
+            class="bg-gray-900 text-white px-4 py-1.5 rounded-md text-sm hover:bg-black transition-colors">
+      Filter
+    </button>
+    {% if filter_agent or filter_outcome %}
+    <a href="/" class="px-4 py-1.5 text-sm border border-gray-300 rounded-md hover:bg-gray-100">
+      Clear
+    </a>
+    {% endif %}
+  </form>
+
+  <!-- Runs table -->
+  <div class="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
+    <table class="w-full text-sm">
+      <thead class="bg-gray-50 border-b border-gray-200">
+        <tr>
+          <th class="text-left px-4 py-3 font-semibold text-gray-600">Agent</th>
+          <th class="text-left px-4 py-3 font-semibold text-gray-600">Outcome</th>
+          <th class="text-left px-4 py-3 font-semibold text-gray-600">Input</th>
+          <th class="text-left px-4 py-3 font-semibold text-gray-600">Duration</th>
+          <th class="text-left px-4 py-3 font-semibold text-gray-600">Timestamp</th>
+        </tr>
+      </thead>
+      <tbody id="runs-tbody">
+        {% for run in runs %}
+        <tr class="border-b border-gray-100 hover:bg-gray-50 cursor-pointer"
+            onclick="window.location='/runs/{{ run.id }}'">
+          <td class="px-4 py-3 font-medium">{{ run.agent_name }}</td>
+          <td class="px-4 py-3">
+            <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium
+                         {% if run.outcome == 'SUCCESS' %}bg-green-100 text-green-800
+                         {% elif run.outcome == 'FAILURE' %}bg-red-100 text-red-800
+                         {% elif run.outcome == 'BLOCKED' %}bg-orange-100 text-orange-800
+                         {% else %}bg-yellow-100 text-yellow-800{% endif %}">
+              {{ run.outcome }}
+            </span>
+          </td>
+          <td class="px-4 py-3 text-gray-600 max-w-xs truncate">
+            {{ run.input_prompt or "—" }}
+          </td>
+          <td class="px-4 py-3 text-gray-500">
+            {% if run.total_ms %}{{ "%.0f"|format(run.total_ms) }}ms{% else %}—{% endif %}
+          </td>
+          <td class="px-4 py-3 text-gray-400 whitespace-nowrap">
+            {{ run.timestamp[:19] if run.timestamp else "—" }}
+          </td>
+        </tr>
+        {% else %}
+        <tr>
+          <td colspan="5" class="px-4 py-12 text-center text-gray-400">
+            No runs yet. Decorate an agent with <code class="font-mono bg-gray-100 px-1 rounded">@agx.protect</code> to start tracing.
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+  {% if not agx_endpoint %}
+  <!-- Upsell card -->
+  <div class="mt-8 rounded-xl bg-gray-900 border border-gray-800 p-6 flex items-start gap-4">
+    <div class="text-3xl">☁</div>
+    <div>
+      <h3 class="font-semibold text-white">Push traces to AG-X Cloud</h3>
+      <p class="text-sm text-gray-300 mt-1">
+        Fleet-wide observability, LLM-powered vaccine generation, backtesting,
+        and team sharing — free 14-day trial.
+      </p>
+      <a href="https://ag-x.dev/" target="_blank"
+         class="inline-block mt-3 bg-white text-gray-900 text-sm px-4 py-2 rounded-md font-medium hover:bg-gray-100 transition-colors">
+        Start free trial &rarr;
+      </a>
+      <p class="text-xs text-gray-500 mt-2">
+        Set <code class="font-mono">AGX_ENDPOINT</code> + <code class="font-mono">AGX_API_KEY</code> in your .env — zero code change.
+      </p>
+    </div>
+  </div>
+  {% endif %}
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+function runsPage() {
+  return {
+    connected: false,
+    init() {
+      this.connectSSE();
+    },
+    connectSSE() {
+      const self = this;
+      const es = new EventSource('/stream');
+      es.onopen = () => { self.connected = true; };
+      es.onerror = () => { self.connected = false; };
+      es.onmessage = (event) => {
+        try {
+          const run = JSON.parse(event.data);
+          self.prependRun(run);
+        } catch(e) {}
+      };
+    },
+    prependRun(run) {
+      const tbody = document.getElementById('runs-tbody');
+      const outcomeClass = {
+        SUCCESS: 'bg-green-100 text-green-800',
+        FAILURE: 'bg-red-100 text-red-800',
+        BLOCKED: 'bg-orange-100 text-orange-800',
+        WARNED:  'bg-yellow-100 text-yellow-800',
+      }[run.outcome] || 'bg-gray-100 text-gray-800';
+      const ts = (run.timestamp || '').substring(0, 19);
+      const input = (run.input_prompt || '—').substring(0, 60);
+      const ms = run.total_ms ? Math.round(run.total_ms) + 'ms' : '—';
+      const row = `
+        <tr class="border-b border-gray-100 hover:bg-gray-50 cursor-pointer"
+            onclick="window.location='/runs/${run.id}'">
+          <td class="px-4 py-3 font-medium">${run.agent_name}</td>
+          <td class="px-4 py-3">
+            <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${outcomeClass}">
+              ${run.outcome}
+            </span>
+          </td>
+          <td class="px-4 py-3 text-gray-600 max-w-xs truncate">${input}</td>
+          <td class="px-4 py-3 text-gray-500">${ms}</td>
+          <td class="px-4 py-3 text-gray-400 whitespace-nowrap">${ts}</td>
+        </tr>`;
+      tbody.insertAdjacentHTML('afterbegin', row);
+    }
+  };
+}
+</script>
+{% endblock %}

@@ -1,0 +1,123 @@
+{% extends "base.html" %}
+{% block title %}Scanner — AG-X Dashboard{% endblock %}
+
+{% block content %}
+<div class="mb-6">
+  <h1 class="text-2xl font-bold">Offline Vaccine Scanner</h1>
+  <p class="text-sm text-gray-500 mt-1">
+    Upload a JSONL or plain-text log file to detect failure patterns and generate vaccines.
+  </p>
+</div>
+
+<!-- Upload form -->
+<div class="bg-white rounded-xl border border-gray-200 shadow-sm p-6 mb-8">
+  <form method="post" enctype="multipart/form-data" class="space-y-4">
+    <div>
+      <label class="block text-sm font-medium text-gray-700 mb-1">Log file (JSONL or plain text)</label>
+      <input type="file" name="log_file" accept=".jsonl,.log,.txt"
+             class="block w-full text-sm text-gray-500
+                    file:mr-4 file:py-2 file:px-4
+                    file:rounded-md file:border-0
+                    file:text-sm file:font-medium
+                    file:bg-gray-100 file:text-gray-700
+                    hover:file:bg-gray-200" required />
+      <p class="text-xs text-gray-400 mt-1">
+        Expected format: <code class="font-mono">{"agent_name": "...", "outcome": "FAILURE", "output_snapshot": "..."}</code>
+      </p>
+    </div>
+    <div>
+      <label class="block text-sm font-medium text-gray-700 mb-1">Agent name (optional filter)</label>
+      <input type="text" name="agent_name" placeholder="my_agent"
+             class="border border-gray-300 rounded-md px-3 py-2 text-sm w-full max-w-xs
+                    focus:outline-none focus:ring-2 focus:ring-gray-900" />
+    </div>
+    <button type="submit"
+            class="bg-gray-900 text-white px-6 py-2 rounded-md text-sm hover:bg-black transition-colors">
+      Analyze &rarr;
+    </button>
+  </form>
+</div>
+
+{% if result %}
+  {% if result.error %}
+  <div class="bg-red-50 border border-red-200 rounded-xl p-5">
+    <h2 class="font-semibold text-red-700 mb-2">Scan Error</h2>
+    <pre class="text-sm text-red-600">{{ result.error }}</pre>
+  </div>
+
+  {% else %}
+  <!-- Scan Results -->
+  <div class="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden mb-6">
+    <div class="bg-gray-50 border-b border-gray-200 px-5 py-3">
+      <h2 class="font-semibold text-gray-800">
+        Scan Report — {{ result.agent_name }} —
+        <span class="font-normal text-gray-600">{{ result.total_runs }} runs, {{ result.failure_count }} failures</span>
+      </h2>
+    </div>
+
+    <!-- Heuristic confidence warning -->
+    <div class="bg-yellow-50 border-b border-yellow-200 px-5 py-3 flex items-start gap-3">
+      <span class="text-yellow-600 text-lg">&#9888;</span>
+      <div class="text-sm text-yellow-800">
+        <strong>Heuristic-based suggestions.</strong>
+        Run <code class="font-mono bg-yellow-100 px-1 rounded">agx validate</code> against historical outputs
+        to measure false positive rate before committing to production.
+        For ML-powered vaccine generation with backtesting, upgrade to
+        <a href="https://ag-x.dev/" class="underline font-medium" target="_blank">AG-X Cloud</a>.
+      </div>
+    </div>
+
+    {% if result.patterns %}
+    <table class="w-full text-sm">
+      <thead class="bg-gray-50 border-b border-gray-200">
+        <tr>
+          <th class="text-left px-4 py-3 font-semibold text-gray-600">Pattern</th>
+          <th class="text-left px-4 py-3 font-semibold text-gray-600">Count</th>
+          <th class="text-left px-4 py-3 font-semibold text-gray-600">Suggested Action</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for pattern in result.patterns %}
+        <tr class="border-b border-gray-100">
+          <td class="px-4 py-3 font-medium">{{ pattern.category }}</td>
+          <td class="px-4 py-3 text-gray-600">
+            {{ pattern.count }} ({{ pattern.percentage }}%)
+          </td>
+          <td class="px-4 py-3">
+            {% if pattern.suggested_assertion %}
+            <span class="text-xs px-2 py-0.5 rounded font-medium
+                         {% if pattern.suggested_assertion.severity == 'BLOCK' %}bg-red-100 text-red-700
+                         {% else %}bg-yellow-100 text-yellow-700{% endif %}">
+              {{ pattern.suggested_assertion.engine }} {{ pattern.suggested_assertion.severity }}
+            </span>
+            {% else %}
+            <span class="text-gray-400">—</span>
+            {% endif %}
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    {% else %}
+    <div class="px-5 py-8 text-center text-gray-400">
+      No failure patterns detected in the uploaded file.
+    </div>
+    {% endif %}
+  </div>
+
+  {% if result.suggested_vaccines %}
+  <div class="bg-gray-50 border border-gray-200 rounded-xl p-5 mb-6">
+    <h3 class="font-semibold text-gray-900 mb-2">
+      {{ result.suggested_vaccines | length }} Vaccine(s) Generated
+    </h3>
+    <p class="text-sm text-gray-600 mb-3">
+      Download the vaccine YAML and place it in <code class="font-mono">~/.agx/vaccines/{{ result.agent_name }}.yaml</code>
+      or run <code class="font-mono">agx scan --input &lt;file&gt; --output vaccines.yaml</code> from the CLI.
+    </p>
+    <pre class="bg-white border border-gray-200 rounded-lg p-4 text-xs overflow-auto max-h-64 text-gray-700">{{ result.suggested_vaccines | tojson(indent=2) }}</pre>
+  </div>
+  {% endif %}
+
+  {% endif %}
+{% endif %}
+{% endblock %}

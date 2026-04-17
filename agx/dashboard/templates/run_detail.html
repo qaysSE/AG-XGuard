@@ -1,0 +1,105 @@
+{% extends "base.html" %}
+{% block title %}Run {{ run.id[:8] }} — AG-X Dashboard{% endblock %}
+
+{% block content %}
+<div class="mb-6">
+  <a href="/" class="text-gray-600 hover:text-black text-sm">&larr; Back to runs</a>
+</div>
+
+<div class="flex items-start justify-between mb-6">
+  <div>
+    <h1 class="text-2xl font-bold">Run <code class="font-mono text-lg">{{ run.id[:12] }}</code></h1>
+    <p class="text-sm text-gray-500 mt-1">{{ run.agent_name }} · {{ run.timestamp[:19] if run.timestamp else "" }}</p>
+  </div>
+  <span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-semibold
+               {% if run.outcome == 'SUCCESS' %}bg-green-100 text-green-800
+               {% elif run.outcome == 'FAILURE' %}bg-red-100 text-red-800
+               {% elif run.outcome == 'BLOCKED' %}bg-orange-100 text-orange-800
+               {% else %}bg-yellow-100 text-yellow-800{% endif %}">
+    {{ run.outcome }}
+  </span>
+</div>
+
+<div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+
+  <!-- Input -->
+  <div class="bg-white rounded-xl border border-gray-200 shadow-sm p-5">
+    <h2 class="font-semibold text-gray-700 mb-3 flex items-center gap-2">
+      <span class="text-gray-400">&rarr;</span> Input Prompt
+    </h2>
+    <pre class="text-sm bg-gray-50 rounded-lg p-4 overflow-auto max-h-64 whitespace-pre-wrap text-gray-700">{{ run.input_prompt or "(none)" }}</pre>
+  </div>
+
+  <!-- Output -->
+  <div class="bg-white rounded-xl border border-gray-200 shadow-sm p-5">
+    <h2 class="font-semibold text-gray-700 mb-3 flex items-center gap-2">
+      <span class="text-gray-400">&larr;</span> Output Snapshot
+    </h2>
+    <pre class="text-sm bg-gray-50 rounded-lg p-4 overflow-auto max-h-64 whitespace-pre-wrap text-gray-700">{{ run.output_snapshot or "(none)" }}</pre>
+  </div>
+
+  <!-- Cage Result -->
+  <div class="bg-white rounded-xl border border-gray-200 shadow-sm p-5">
+    <h2 class="font-semibold text-gray-700 mb-3">Cage Verdict</h2>
+    {% if run.cage_passed is not none %}
+      {% if run.cage_passed %}
+      <div class="flex items-center gap-2 text-green-700 bg-green-50 rounded-lg p-3 mb-3">
+        <span class="text-lg font-bold">✓</span>
+        <span class="font-medium">All assertions passed</span>
+      </div>
+      {% else %}
+      <div class="flex items-center gap-2 text-red-700 bg-red-50 rounded-lg p-3 mb-3">
+        <span class="text-lg font-bold">✗</span>
+        <span class="font-medium">One or more assertions failed</span>
+      </div>
+      {% endif %}
+    {% else %}
+      <p class="text-gray-400 text-sm">No cage assertions ran for this call.</p>
+    {% endif %}
+  </div>
+
+  <!-- Vaccines fired -->
+  <div class="bg-white rounded-xl border border-gray-200 shadow-sm p-5">
+    <h2 class="font-semibold text-gray-700 mb-3">Vaccines Fired</h2>
+    {% if run.vaccines_fired %}
+    <ul class="space-y-1">
+      {% for v in run.vaccines_fired %}
+      <li class="text-sm font-mono bg-gray-100 text-gray-700 px-2 py-1 rounded">{{ v }}</li>
+      {% endfor %}
+    </ul>
+    {% else %}
+    <p class="text-gray-400 text-sm">No vaccines fired.</p>
+    {% endif %}
+  </div>
+
+</div>
+
+<!-- Stats row -->
+<div class="grid grid-cols-2 sm:grid-cols-4 gap-4 mt-6">
+  <div class="bg-white rounded-xl border border-gray-200 p-4 text-center">
+    <div class="text-2xl font-bold text-gray-800">{{ "%.1f"|format(run.total_ms or 0) }}</div>
+    <div class="text-xs text-gray-500 mt-1">Total ms</div>
+  </div>
+  <div class="bg-white rounded-xl border border-gray-200 p-4 text-center">
+    <div class="text-2xl font-bold text-gray-800">{{ run.session_id[:8] }}</div>
+    <div class="text-xs text-gray-500 mt-1">Session</div>
+  </div>
+  <div class="bg-white rounded-xl border border-gray-200 p-4 text-center">
+    <div class="text-2xl font-bold text-gray-800">{{ run.vaccines_fired | length if run.vaccines_fired else 0 }}</div>
+    <div class="text-xs text-gray-500 mt-1">Vaccines</div>
+  </div>
+  <div class="bg-white rounded-xl border border-gray-200 p-4 text-center">
+    <div class="text-2xl font-bold {% if run.cage_passed %}text-green-600{% elif run.cage_passed == false %}text-red-600{% else %}text-gray-400{% endif %}">
+      {% if run.cage_passed is not none %}{% if run.cage_passed %}PASS{% else %}FAIL{% endif %}{% else %}N/A{% endif %}
+    </div>
+    <div class="text-xs text-gray-500 mt-1">Cage</div>
+  </div>
+</div>
+
+{% if run.error %}
+<div class="mt-6 bg-red-50 border border-red-200 rounded-xl p-5">
+  <h2 class="font-semibold text-red-700 mb-2">Error</h2>
+  <pre class="text-sm text-red-600 whitespace-pre-wrap">{{ run.error }}</pre>
+</div>
+{% endif %}
+{% endblock %}

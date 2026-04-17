@@ -1,0 +1,88 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "agx-community"
+version = "0.1.0"
+description = "Deterministic safety guardrails for AI agents — Community Edition"
+readme = "README.md"
+license = {text = "Apache-2.0"}
+requires-python = ">=3.10"
+authors = [
+    {name = "AG-X Community Contributors", email = "hello@agx.community"},
+]
+keywords = ["ai", "agents", "safety", "guardrails", "observability"]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: Apache Software License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Software Development :: Libraries :: Python Modules",
+    "Topic :: Scientific/Engineering :: Artificial Intelligence",
+]
+dependencies = [
+    "pydantic>=2.0",
+    "pydantic-settings>=2.0",
+    "jsonschema>=4.0",
+    "pyyaml>=6.0",
+    "aiosqlite>=0.19",
+    "click>=8.0",
+    "rich>=13.0",
+]
+
+[project.optional-dependencies]
+otel = [
+    "opentelemetry-sdk>=1.27",
+    "opentelemetry-api>=1.27",
+    "opentelemetry-exporter-otlp>=1.27",
+]
+dashboard = [
+    "fastapi>=0.115",
+    "uvicorn[standard]>=0.30",
+    "jinja2>=3.1",
+    "python-multipart>=0.0.9",
+]
+scan = [
+    "numpy>=1.26",
+    "scikit-learn>=1.5",
+]
+all = ["agx-community[otel,dashboard,scan]"]
+
+[project.scripts]
+agx = "agx.cli:main"
+
+[project.urls]
+Homepage = "https://agx.community"
+Repository = "https://github.com/agx-community/agx-community"
+Documentation = "https://agx.community/docs"
+"Bug Tracker" = "https://github.com/agx-community/agx-community/issues"
+Changelog = "https://github.com/agx-community/agx-community/blob/main/CHANGELOG.md"
+
+[tool.hatch.build.targets.wheel]
+packages = ["agx"]
+include = ["agx/dashboard/templates/**/*.html", "agx/dashboard/static/**/*", "agx/py.typed"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+asyncio_mode = "auto"
+
+[tool.coverage.run]
+# Omit modules that require external infrastructure (FastAPI server, OTel
+# collector, LLM API keys, Click CLI runner) — tested via integration tests.
+omit = [
+    "agx/cli.py",
+    "agx/dashboard/server.py",
+    "agx/otel.py",
+    "agx/scanner/llm_doctor.py",
+]
+
+[tool.coverage.report]
+exclude_lines = [
+    "pragma: no cover",
+    "if TYPE_CHECKING:",
+    "raise NotImplementedError",
+]
