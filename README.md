@@ -3,7 +3,8 @@
 **Deterministic safety guardrails for AI agents — zero infrastructure, one line of code.**
 
 ```bash
-pip install ag-x
+git clone https://github.com/qaysSE/AG-X.git
+cd AG-X
 ```
 
 ```python
@@ -25,19 +26,19 @@ Every call is now automatically:
 
 ```bash
 # Core guardrails + CLI + local traces (start here)
-pip install agx-community
+pip install -e .
 
 # Add the local dashboard UI
-pip install agx-community[dashboard]
+pip install -e ".[dashboard]"
 
 # Add OpenTelemetry export
-pip install agx-community[otel]
+pip install -e ".[otel]"
 
 # Add ML-powered log scanner
-pip install agx-community[scan]
+pip install -e ".[scan]"
 
 # Everything
-pip install agx-community[all]
+pip install -e ".[all]"
 ```
 
 ---
@@ -270,8 +271,8 @@ AGX_API_KEY=tgak_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
 
 ## Known limitations (v0.1.0)
 
-- **StructuralPatch** — defined in the data model but post-generation output rewriting is not yet executed locally. Reserved for AG-X Cloud.
-- **ROLLBACK severity** — behaves identically to `BLOCK` locally. Full transactional rollback requires AG-X Cloud.
+- **StructuralPatch** — defined in the data model but post-generation output rewriting is not yet executed locally. Reserved for AG-X.dev **https://www.ag-x.dev/** .
+- **ROLLBACK severity** — behaves identically to `BLOCK` locally. Full transactional rollback requires AG-X.dev .
 - **ML clustering** — `[scan]` installs `numpy` and `scikit-learn` for future use. Current failure detection is heuristic-only.
 
 ---
