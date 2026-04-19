@@ -281,4 +281,4 @@ AGX_API_KEY=tgak_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
 
 Apache 2.0 — see [LICENSE](LICENSE).
 
-Community Edition is free and open source. AG-X Cloud is a separate commercial product.
+Community Edition is free and open source.
