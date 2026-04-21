@@ -3,7 +3,7 @@
 **Deterministic safety guardrails for AI agents — zero infrastructure, one line of code.**
 
 ```bash
-git clone https://github.com/qaysSE/AG-X.git
+git clone https://github.com/qaysSE/AG-XGuard.git
 cd AG-X
 ```
 
