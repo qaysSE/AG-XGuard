@@ -22,24 +22,7 @@ Every call is now automatically:
 
 ---
 
-## Install
 
-```bash
-# Core guardrails + CLI + local traces (start here)
-pip install -e .
-
-# Add the local dashboard UI
-pip install -e ".[dashboard]"
-
-# Add OpenTelemetry export
-pip install -e ".[otel]"
-
-# Add ML-powered log scanner
-pip install -e ".[scan]"
-
-# Everything
-pip install -e ".[all]"
-```
 
 ---
 
